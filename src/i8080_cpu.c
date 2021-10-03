@@ -87,6 +87,13 @@ static inline uint16_t byte_pair_concat(uint8_t byte1, uint8_t byte2){
 
 //Write a byte to memory location
 static inline void write_mem(i8080* cpu, uint16_t addr, uint8_t data){
+	//Avoid writing to ROM section
+	//ROM section is from 0x0000->0x1FFF
+	if(addr>=0x0000 && addr<=0x1FFF){
+		puts("Can't write to ROM!\n");
+		exit(1);
+	}
+	
     cpu->memory[addr]=data;
 }
 
@@ -264,32 +271,32 @@ static inline void RET(i8080* cpu){
 
 static inline void conditional_jmp(i8080* cpu, bool condition){
     if(condition){			//If conditional jump takes place
-				uint16_t addr=get_immediate_addr(cpu, (cpu->PC)+1);
-				JMP(cpu, addr);
+		uint16_t addr=get_immediate_addr(cpu, (cpu->PC)+1);
+		JMP(cpu, addr);
     }
     else{
-				cpu->PC+=3;
+		cpu->PC+=3;
     }
 }
 
 static inline void conditional_call(i8080* cpu, bool condition){
     if(condition){		//If conditional call takes place
-				uint16_t addr=get_immediate_addr(cpu, (cpu->PC)+1);
-				cpu->instruction_cycles+=6;
-				CALL(cpu, addr);
+		uint16_t addr=get_immediate_addr(cpu, (cpu->PC)+1);
+		cpu->instruction_cycles+=6;
+		CALL(cpu, addr);
     }
     else{
-				cpu->PC+=3;
+		cpu->PC+=3;
     }
 }
 
 static inline void conditional_ret(i8080* cpu, bool condition){
     if(condition){		//If conditional return takes place
-				cpu->instruction_cycles+=6;
-				RET(cpu);
+		cpu->instruction_cycles+=6;
+		RET(cpu);
     }
     else{
-				cpu->PC++;
+		cpu->PC++;
     }
 }
 
@@ -350,14 +357,14 @@ void generate_interrupt(i8080* cpu, uint16_t addr){
 
 void RST(i8080* cpu, uint8_t int_num){
     switch(int_num){
-				case 0: generate_interrupt(cpu, 0x0000); break;
-				case 1: generate_interrupt(cpu, 0x0008); break;
-				case 2: generate_interrupt(cpu, 0x0010); break;
-				case 3: generate_interrupt(cpu, 0x0018); break;
-				case 4: generate_interrupt(cpu, 0x0020); break;
-				case 5: generate_interrupt(cpu, 0x0028); break;
-				case 6: generate_interrupt(cpu, 0x0030); break;
-				case 7: generate_interrupt(cpu, 0x0038); break;
+		case 0: generate_interrupt(cpu, 0x0000); break;
+		case 1: generate_interrupt(cpu, 0x0008); break;
+		case 2: generate_interrupt(cpu, 0x0010); break;
+		case 3: generate_interrupt(cpu, 0x0018); break;
+		case 4: generate_interrupt(cpu, 0x0020); break;
+		case 5: generate_interrupt(cpu, 0x0028); break;
+		case 6: generate_interrupt(cpu, 0x0030); break;
+		case 7: generate_interrupt(cpu, 0x0038); break;
     }
 }
 
@@ -438,15 +445,15 @@ static inline void DAA(i8080* cpu){
     lower_nibble=(cpu->A) & 0x0F;
 
     if((lower_nibble>0x09)||(cpu->flags.AC==1)){
-				addend+=0x06;
+		addend+=0x06;
     }
 
     uint8_t higher_nibble;
     higher_nibble=(cpu->A)>>4;
 
     if((higher_nibble>0x09)||(cpu->flags.C==1)||(lower_nibble>0x09 && higher_nibble>=0x09)){
-				addend+=0x60;
-				cy=1;
+		addend+=0x60;
+		cy=1;
     }
 
     cpu->A=add_bytes_set_flag(cpu, cpu->A, addend, 0);
@@ -596,11 +603,7 @@ and updates the program counter*/
 void i8080_emulator(i8080* cpu){
     //Fetch the instruction opcode from the memory pointed to by the PC
     uint8_t opcode=read_mem(cpu, cpu->PC);
-
-    #if DISASSEMBLY_ON_FLAG
-        i8080_disassembler(cpu->memory, cpu->PC);
-    #endif
-
+    
     /*Converts H and L register pair into an 16-bit address (H:L)
     This address will be used by instructions using register-
     indirect addressing mode*/
@@ -690,234 +693,230 @@ void i8080_emulator(i8080* cpu){
         case 0x3E: MVI(cpu, &cpu->A, (cpu->PC)+1); break;			//MVI		A, d8
         case 0x3F: cpu->flags.C=~(cpu->flags.C); cpu->PC++; break;			//CMC
 
-				//0x40 ... 0x4F
-				case 0x40: cpu->B=cpu->B; cpu->PC++; break;						//MOV		B, B
-				case 0x41: cpu->B=cpu->C; cpu->PC++; break;						//MOV		B, C
-				case 0x42: cpu->B=cpu->D; cpu->PC++; break;						//MOV		B, D
-				case 0x43: cpu->B=cpu->E; cpu->PC++; break;						//MOV		B, E
-				case 0x44: cpu->B=cpu->H; cpu->PC++; break;						//MOV		B, H
-				case 0x45: cpu->B=cpu->L; cpu->PC++; break;						//MOV		B, L
-				case 0x46: cpu->B=read_mem(cpu, HL_addr); cpu->PC++; break;		//MOV		B, M
-				case 0x47: cpu->B=cpu->A; cpu->PC++; break;						//MOV		B, A
-				case 0x48: cpu->C=cpu->B; cpu->PC++; break;						//MOV		C, B
-				case 0x49: cpu->C=cpu->C; cpu->PC++; break;						//MOV		C, C
-				case 0x4A: cpu->C=cpu->D; cpu->PC++; break;						//MOV		C, D
-				case 0x4B: cpu->C=cpu->E; cpu->PC++; break;						//MOV		C, E
-				case 0x4C: cpu->C=cpu->H; cpu->PC++; break;						//MOV		C, H
-				case 0x4D: cpu->C=cpu->L; cpu->PC++; break;						//MOV		C, L
-				case 0x4E: cpu->C=read_mem(cpu, HL_addr); cpu->PC++; break;		//MOV		C, M
-				case 0x4F: cpu->C=cpu->A; cpu->PC++; break;						//MOV		C, A
+		//0x40 ... 0x4F
+		case 0x40: cpu->B=cpu->B; cpu->PC++; break;						//MOV		B, B
+		case 0x41: cpu->B=cpu->C; cpu->PC++; break;						//MOV		B, C
+		case 0x42: cpu->B=cpu->D; cpu->PC++; break;						//MOV		B, D
+		case 0x43: cpu->B=cpu->E; cpu->PC++; break;						//MOV		B, E
+		case 0x44: cpu->B=cpu->H; cpu->PC++; break;						//MOV		B, H
+		case 0x45: cpu->B=cpu->L; cpu->PC++; break;						//MOV		B, L
+		case 0x46: cpu->B=read_mem(cpu, HL_addr); cpu->PC++; break;		//MOV		B, M
+		case 0x47: cpu->B=cpu->A; cpu->PC++; break;						//MOV		B, A
+		case 0x48: cpu->C=cpu->B; cpu->PC++; break;						//MOV		C, B
+		case 0x49: cpu->C=cpu->C; cpu->PC++; break;						//MOV		C, C
+		case 0x4A: cpu->C=cpu->D; cpu->PC++; break;						//MOV		C, D
+		case 0x4B: cpu->C=cpu->E; cpu->PC++; break;						//MOV		C, E
+		case 0x4C: cpu->C=cpu->H; cpu->PC++; break;						//MOV		C, H
+		case 0x4D: cpu->C=cpu->L; cpu->PC++; break;						//MOV		C, L
+		case 0x4E: cpu->C=read_mem(cpu, HL_addr); cpu->PC++; break;		//MOV		C, M
+		case 0x4F: cpu->C=cpu->A; cpu->PC++; break;						//MOV		C, A
 
-				//0x50 ... 0x5F
-				case 0x50: cpu->D=cpu->B; cpu->PC++; break;						//MOV		D, B
-				case 0x51: cpu->D=cpu->C; cpu->PC++; break;						//MOV		D, C
-				case 0x52: cpu->D=cpu->D; cpu->PC++; break;						//MOV		D, D
-				case 0x53: cpu->D=cpu->E; cpu->PC++; break;						//MOV		D, E
-				case 0x54: cpu->D=cpu->H; cpu->PC++; break;						//MOV		D, H
-				case 0x55: cpu->D=cpu->L; cpu->PC++; break;						//MOV		D, L
-				case 0x56: cpu->D=read_mem(cpu, HL_addr); cpu->PC++; break;		//MOV		D, M
-				case 0x57: cpu->D=cpu->A; cpu->PC++; break;						//MOV		D, A
-				case 0x58: cpu->E=cpu->B; cpu->PC++; break;						//MOV		E, B
-				case 0x59: cpu->E=cpu->C; cpu->PC++; break;						//MOV		E, C
-				case 0x5A: cpu->E=cpu->D; cpu->PC++; break;						//MOV		E, D
-				case 0x5B: cpu->E=cpu->E; cpu->PC++; break;						//MOV		E, E
-				case 0x5C: cpu->E=cpu->H; cpu->PC++; break;						//MOV		E, H
-				case 0x5D: cpu->E=cpu->L; cpu->PC++; break;						//MOV		E, L
-				case 0x5E: cpu->E=read_mem(cpu, HL_addr); cpu->PC++; break;		//MOV		E, M
-				case 0x5F: cpu->E=cpu->A; cpu->PC++; break;						//MOV		E, A
+		//0x50 ... 0x5F
+		case 0x50: cpu->D=cpu->B; cpu->PC++; break;						//MOV		D, B
+		case 0x51: cpu->D=cpu->C; cpu->PC++; break;						//MOV		D, C
+		case 0x52: cpu->D=cpu->D; cpu->PC++; break;						//MOV		D, D
+		case 0x53: cpu->D=cpu->E; cpu->PC++; break;						//MOV		D, E
+		case 0x54: cpu->D=cpu->H; cpu->PC++; break;						//MOV		D, H
+		case 0x55: cpu->D=cpu->L; cpu->PC++; break;						//MOV		D, L
+		case 0x56: cpu->D=read_mem(cpu, HL_addr); cpu->PC++; break;		//MOV		D, M
+		case 0x57: cpu->D=cpu->A; cpu->PC++; break;						//MOV		D, A
+		case 0x58: cpu->E=cpu->B; cpu->PC++; break;						//MOV		E, B
+		case 0x59: cpu->E=cpu->C; cpu->PC++; break;						//MOV		E, C
+		case 0x5A: cpu->E=cpu->D; cpu->PC++; break;						//MOV		E, D
+		case 0x5B: cpu->E=cpu->E; cpu->PC++; break;						//MOV		E, E
+		case 0x5C: cpu->E=cpu->H; cpu->PC++; break;						//MOV		E, H
+		case 0x5D: cpu->E=cpu->L; cpu->PC++; break;						//MOV		E, L
+		case 0x5E: cpu->E=read_mem(cpu, HL_addr); cpu->PC++; break;		//MOV		E, M
+		case 0x5F: cpu->E=cpu->A; cpu->PC++; break;						//MOV		E, A
 
-				//0x60 ... 0x6F
-				case 0x60: cpu->H=cpu->B; cpu->PC++; break;						//MOV		H, B
-				case 0x61: cpu->H=cpu->C; cpu->PC++; break;						//MOV		H, C
-				case 0x62: cpu->H=cpu->D; cpu->PC++; break;						//MOV		H, D
-				case 0x63: cpu->H=cpu->E; cpu->PC++; break;						//MOV		H, E
-				case 0x64: cpu->H=cpu->H; cpu->PC++; break;						//MOV		H, H
-				case 0x65: cpu->H=cpu->L; cpu->PC++; break;						//MOV		H, L
-				case 0x66: cpu->H=read_mem(cpu, HL_addr); cpu->PC++; break;		//MOV		H, M
-				case 0x67: cpu->H=cpu->A; cpu->PC++; break;						//MOV		H, A
-				case 0x68: cpu->L=cpu->B; cpu->PC++; break;						//MOV		L, B
-				case 0x69: cpu->L=cpu->C; cpu->PC++; break;						//MOV		L, C
-				case 0x6A: cpu->L=cpu->D; cpu->PC++; break;						//MOV		L, D
-				case 0x6B: cpu->L=cpu->E; cpu->PC++; break;						//MOV		L, E
-				case 0x6C: cpu->L=cpu->H; cpu->PC++; break;						//MOV		L, H
-				case 0x6D: cpu->L=cpu->L; cpu->PC++; break;						//MOV		L, L
-				case 0x6E: cpu->L=read_mem(cpu, HL_addr); cpu->PC++; break;		//MOV		L, M
-				case 0x6F: cpu->L=cpu->A; cpu->PC++; break;						//MOV		L, A
+		//0x60 ... 0x6F
+		case 0x60: cpu->H=cpu->B; cpu->PC++; break;						//MOV		H, B
+		case 0x61: cpu->H=cpu->C; cpu->PC++; break;						//MOV		H, C
+		case 0x62: cpu->H=cpu->D; cpu->PC++; break;						//MOV		H, D
+		case 0x63: cpu->H=cpu->E; cpu->PC++; break;						//MOV		H, E
+		case 0x64: cpu->H=cpu->H; cpu->PC++; break;						//MOV		H, H
+		case 0x65: cpu->H=cpu->L; cpu->PC++; break;						//MOV		H, L
+		case 0x66: cpu->H=read_mem(cpu, HL_addr); cpu->PC++; break;		//MOV		H, M
+		case 0x67: cpu->H=cpu->A; cpu->PC++; break;						//MOV		H, A
+		case 0x68: cpu->L=cpu->B; cpu->PC++; break;						//MOV		L, B
+		case 0x69: cpu->L=cpu->C; cpu->PC++; break;						//MOV		L, C
+		case 0x6A: cpu->L=cpu->D; cpu->PC++; break;						//MOV		L, D
+		case 0x6B: cpu->L=cpu->E; cpu->PC++; break;						//MOV		L, E
+		case 0x6C: cpu->L=cpu->H; cpu->PC++; break;						//MOV		L, H
+		case 0x6D: cpu->L=cpu->L; cpu->PC++; break;						//MOV		L, L
+		case 0x6E: cpu->L=read_mem(cpu, HL_addr); cpu->PC++; break;		//MOV		L, M
+		case 0x6F: cpu->L=cpu->A; cpu->PC++; break;						//MOV		L, A
 
-				//0x70 ... 0x7F
-				case 0x70: write_mem(cpu, HL_addr, cpu->B); cpu->PC++; break;		//MOV		M, B
-				case 0x71: write_mem(cpu, HL_addr, cpu->C); cpu->PC++; break;		//MOV		M, C
-				case 0x72: write_mem(cpu, HL_addr, cpu->D); cpu->PC++; break;		//MOV		M, D
-				case 0x73: write_mem(cpu, HL_addr, cpu->E); cpu->PC++; break;		//MOV		M, E
-				case 0x74: write_mem(cpu, HL_addr, cpu->H); cpu->PC++; break;		//MOV		M, H
-				case 0x75: write_mem(cpu, HL_addr, cpu->L); cpu->PC++; break;		//MOV		M, L
-				case 0x76: cpu->PC--; break;			//HLT
-				case 0x77: write_mem(cpu, HL_addr, cpu->A); cpu->PC++; break;		//MOV		M, A
-				case 0x78: cpu->A=cpu->B; cpu->PC++; break;						//MOV		A, B
-				case 0x79: cpu->A=cpu->C; cpu->PC++; break;						//MOV		A, C
-				case 0x7A: cpu->A=cpu->D; cpu->PC++; break;						//MOV		A, D
-				case 0x7B: cpu->A=cpu->E; cpu->PC++; break;						//MOV		A, E
-				case 0x7C: cpu->A=cpu->H; cpu->PC++; break;						//MOV		A, H
-				case 0x7D: cpu->A=cpu->L; cpu->PC++; break;						//MOV		A, L
-				case 0x7E: cpu->A=read_mem(cpu, HL_addr); cpu->PC++; break;		//MOV		A, M
-				case 0x7F: cpu->A=cpu->A; cpu->PC++; break;						//MOV		A, A
+		//0x70 ... 0x7F
+		case 0x70: write_mem(cpu, HL_addr, cpu->B); cpu->PC++; break;		//MOV		M, B
+		case 0x71: write_mem(cpu, HL_addr, cpu->C); cpu->PC++; break;		//MOV		M, C
+		case 0x72: write_mem(cpu, HL_addr, cpu->D); cpu->PC++; break;		//MOV		M, D
+		case 0x73: write_mem(cpu, HL_addr, cpu->E); cpu->PC++; break;		//MOV		M, E
+		case 0x74: write_mem(cpu, HL_addr, cpu->H); cpu->PC++; break;		//MOV		M, H
+		case 0x75: write_mem(cpu, HL_addr, cpu->L); cpu->PC++; break;		//MOV		M, L
+		case 0x76: cpu->PC--; break;			//HLT
+		case 0x77: write_mem(cpu, HL_addr, cpu->A); cpu->PC++; break;		//MOV		M, A
+		case 0x78: cpu->A=cpu->B; cpu->PC++; break;						//MOV		A, B
+		case 0x79: cpu->A=cpu->C; cpu->PC++; break;						//MOV		A, C
+		case 0x7A: cpu->A=cpu->D; cpu->PC++; break;						//MOV		A, D
+		case 0x7B: cpu->A=cpu->E; cpu->PC++; break;						//MOV		A, E
+		case 0x7C: cpu->A=cpu->H; cpu->PC++; break;						//MOV		A, H
+		case 0x7D: cpu->A=cpu->L; cpu->PC++; break;						//MOV		A, L
+		case 0x7E: cpu->A=read_mem(cpu, HL_addr); cpu->PC++; break;		//MOV		A, M
+		case 0x7F: cpu->A=cpu->A; cpu->PC++; break;						//MOV		A, A
 
-				//0x80 ... 0x8F
-				case 0x80: ADD(cpu, cpu->B, 0); break;			//ADD		B
-				case 0x81: ADD(cpu, cpu->C, 0); break;			//ADD		C
-				case 0x82: ADD(cpu, cpu->D, 0); break;			//ADD		D
-				case 0x83: ADD(cpu, cpu->E, 0); break;			//ADD		E
-				case 0x84: ADD(cpu, cpu->H, 0); break;			//ADD		H
-				case 0x85: ADD(cpu, cpu->L, 0); break;			//ADD		L
-				case 0x86: ADD(cpu, cpu->memory[HL_addr], 0); break;		//ADD		M
-				case 0x87: ADD(cpu, cpu->A, 0); break;						//ADD		A
-				case 0x88: ADD(cpu, cpu->B, cpu->flags.C); break;		//ADC		B
-				case 0x89: ADD(cpu, cpu->C, cpu->flags.C); break;		//ADC		C
+		//0x80 ... 0x8F
+		case 0x80: ADD(cpu, cpu->B, 0); break;			//ADD		B
+		case 0x81: ADD(cpu, cpu->C, 0); break;			//ADD		C
+		case 0x82: ADD(cpu, cpu->D, 0); break;			//ADD		D
+		case 0x83: ADD(cpu, cpu->E, 0); break;			//ADD		E
+		case 0x84: ADD(cpu, cpu->H, 0); break;			//ADD		H
+		case 0x85: ADD(cpu, cpu->L, 0); break;			//ADD		L
+		case 0x86: ADD(cpu, cpu->memory[HL_addr], 0); break;		//ADD		M
+		case 0x87: ADD(cpu, cpu->A, 0); break;						//ADD		A
+		case 0x88: ADD(cpu, cpu->B, cpu->flags.C); break;		//ADC		B
+		case 0x89: ADD(cpu, cpu->C, cpu->flags.C); break;		//ADC		C
         case 0x8A: ADD(cpu, cpu->D, cpu->flags.C); break;		//ADC		D
-				case 0x8B: ADD(cpu, cpu->E, cpu->flags.C); break;		//ADC		E
-				case 0x8C: ADD(cpu, cpu->H, cpu->flags.C); break;		//ADC		H
-				case 0x8D: ADD(cpu, cpu->L, cpu->flags.C); break;		//ADC		L
-				case 0x8E: ADD(cpu, cpu->memory[HL_addr], cpu->flags.C); break;	//ADC		M
-				case 0x8F: ADD(cpu, cpu->A, cpu->flags.C); break;		//ADC		A
+		case 0x8B: ADD(cpu, cpu->E, cpu->flags.C); break;		//ADC		E
+		case 0x8C: ADD(cpu, cpu->H, cpu->flags.C); break;		//ADC		H
+		case 0x8D: ADD(cpu, cpu->L, cpu->flags.C); break;		//ADC		L
+		case 0x8E: ADD(cpu, cpu->memory[HL_addr], cpu->flags.C); break;	//ADC		M
+		case 0x8F: ADD(cpu, cpu->A, cpu->flags.C); break;		//ADC		A
 
-				//0x90 ... 0x9F
-				case 0x90: SUB(cpu, cpu->B, 0); break;			//SUB		B
-				case 0x91: SUB(cpu, cpu->C, 0); break;			//SUB		C
-				case 0x92: SUB(cpu, cpu->D, 0); break;			//SUB		D
-				case 0x93: SUB(cpu, cpu->E, 0); break;			//SUB		E
-				case 0x94: SUB(cpu, cpu->H, 0); break;			//SUB		H
-				case 0x95: SUB(cpu, cpu->L, 0); break;			//SUB		L
-				case 0x96: SUB(cpu, cpu->memory[HL_addr], 0); break;		//SUB		M
-				case 0x97: SUB(cpu, cpu->A, 0); break;			//SUB		A
-				case 0x98: SUB(cpu, cpu->B, cpu->flags.C); break;			//SBB		B
-				case 0x99: SUB(cpu, cpu->C, cpu->flags.C); break;			//SBB		C
-				case 0x9A: SUB(cpu, cpu->D, cpu->flags.C); break;			//SBB		D
-				case 0x9B: SUB(cpu, cpu->E, cpu->flags.C); break;			//SBB		E
-				case 0x9C: SUB(cpu, cpu->H, cpu->flags.C); break;			//SBB		H
-				case 0x9D: SUB(cpu, cpu->L, cpu->flags.C); break;			//SBB		L
-				case 0x9E: SUB(cpu, cpu->memory[HL_addr], cpu->flags.C); break;		//SBB		M
-				case 0x9F: SUB(cpu, cpu->A, cpu->flags.C); break;			//SBB		A
+		//0x90 ... 0x9F
+		case 0x90: SUB(cpu, cpu->B, 0); break;			//SUB		B
+		case 0x91: SUB(cpu, cpu->C, 0); break;			//SUB		C
+		case 0x92: SUB(cpu, cpu->D, 0); break;			//SUB		D
+		case 0x93: SUB(cpu, cpu->E, 0); break;			//SUB		E
+		case 0x94: SUB(cpu, cpu->H, 0); break;			//SUB		H
+		case 0x95: SUB(cpu, cpu->L, 0); break;			//SUB		L
+		case 0x96: SUB(cpu, cpu->memory[HL_addr], 0); break;		//SUB		M
+		case 0x97: SUB(cpu, cpu->A, 0); break;			//SUB		A
+		case 0x98: SUB(cpu, cpu->B, cpu->flags.C); break;			//SBB		B
+		case 0x99: SUB(cpu, cpu->C, cpu->flags.C); break;			//SBB		C
+		case 0x9A: SUB(cpu, cpu->D, cpu->flags.C); break;			//SBB		D
+		case 0x9B: SUB(cpu, cpu->E, cpu->flags.C); break;			//SBB		E
+		case 0x9C: SUB(cpu, cpu->H, cpu->flags.C); break;			//SBB		H
+		case 0x9D: SUB(cpu, cpu->L, cpu->flags.C); break;			//SBB		L
+		case 0x9E: SUB(cpu, cpu->memory[HL_addr], cpu->flags.C); break;		//SBB		M
+		case 0x9F: SUB(cpu, cpu->A, cpu->flags.C); break;			//SBB		A
 
-				//0xA0 ... 0xAF
-				case 0xA0: ANA(cpu, cpu->B); break;			//ANA		B
-				case 0xA1: ANA(cpu, cpu->C); break;			//ANA		C
-				case 0xA2: ANA(cpu, cpu->D); break;			//ANA		D
-				case 0xA3: ANA(cpu, cpu->E); break;			//ANA		E
-				case 0xA4: ANA(cpu, cpu->H); break;			//ANA		H
-				case 0xA5: ANA(cpu, cpu->L); break;			//ANA		L
-				case 0xA6: ANA(cpu, cpu->memory[HL_addr]); break;			//ANA		M
-				case 0xA7: ANA(cpu, cpu->A); break;			//ANA		A
-				case 0xA8: XRA(cpu, cpu->B); break;			//XRA		B
-				case 0xA9: XRA(cpu, cpu->C); break;			//XRA		C
-				case 0xAA: XRA(cpu, cpu->D); break;			//XRA		D
-				case 0xAB: XRA(cpu, cpu->E); break;			//XRA		E
-				case 0xAC: XRA(cpu, cpu->H); break;			//XRA		H
-				case 0xAD: XRA(cpu, cpu->L); break;			//XRA		L
-				case 0xAE: XRA(cpu, cpu->memory[HL_addr]); break;			//XRA		M
-				case 0xAF: XRA(cpu, cpu->A); break;			//XRA		A
+		//0xA0 ... 0xAF
+		case 0xA0: ANA(cpu, cpu->B); break;			//ANA		B
+		case 0xA1: ANA(cpu, cpu->C); break;			//ANA		C
+		case 0xA2: ANA(cpu, cpu->D); break;			//ANA		D
+		case 0xA3: ANA(cpu, cpu->E); break;			//ANA		E
+		case 0xA4: ANA(cpu, cpu->H); break;			//ANA		H
+		case 0xA5: ANA(cpu, cpu->L); break;			//ANA		L
+		case 0xA6: ANA(cpu, cpu->memory[HL_addr]); break;			//ANA		M
+		case 0xA7: ANA(cpu, cpu->A); break;			//ANA		A
+		case 0xA8: XRA(cpu, cpu->B); break;			//XRA		B
+		case 0xA9: XRA(cpu, cpu->C); break;			//XRA		C
+		case 0xAA: XRA(cpu, cpu->D); break;			//XRA		D
+		case 0xAB: XRA(cpu, cpu->E); break;			//XRA		E
+		case 0xAC: XRA(cpu, cpu->H); break;			//XRA		H
+		case 0xAD: XRA(cpu, cpu->L); break;			//XRA		L
+		case 0xAE: XRA(cpu, cpu->memory[HL_addr]); break;			//XRA		M
+		case 0xAF: XRA(cpu, cpu->A); break;			//XRA		A
 
-				//0xB0 ... 0xBF
-				case 0xB0: ORA(cpu, cpu->B); break;			//ORA		B
-				case 0xB1: ORA(cpu, cpu->C); break;			//ORA		C
-				case 0xB2: ORA(cpu, cpu->D); break;			//ORA		D
-				case 0xB3: ORA(cpu, cpu->E); break;			//ORA		E
-				case 0xB4: ORA(cpu, cpu->H); break;			//ORA		H
-				case 0xB5: ORA(cpu, cpu->L); break;			//ORA		L
-				case 0xB6: ORA(cpu, cpu->memory[HL_addr]); break;			//ORA		M
-				case 0xB7: ORA(cpu, cpu->A); break;			//ORA		A
-				case 0xB8: CMP(cpu, cpu->B); break;			//CMP		B
-				case 0xB9: CMP(cpu, cpu->C); break;			//CMP		C
-				case 0xBA: CMP(cpu, cpu->D); break;			//CMP		D
-				case 0xBB: CMP(cpu, cpu->E); break;			//CMP		E
-				case 0xBC: CMP(cpu, cpu->H); break;			//CMP		H
-				case 0xBD: CMP(cpu, cpu->L); break;			//CMP		L
-				case 0xBE: CMP(cpu, cpu->memory[HL_addr]); break;			//CMP		M
-				case 0xBF: CMP(cpu, cpu->A); break;			//CMP		A
+		//0xB0 ... 0xBF
+		case 0xB0: ORA(cpu, cpu->B); break;			//ORA		B
+		case 0xB1: ORA(cpu, cpu->C); break;			//ORA		C
+		case 0xB2: ORA(cpu, cpu->D); break;			//ORA		D
+		case 0xB3: ORA(cpu, cpu->E); break;			//ORA		E
+		case 0xB4: ORA(cpu, cpu->H); break;			//ORA		H
+		case 0xB5: ORA(cpu, cpu->L); break;			//ORA		L
+		case 0xB6: ORA(cpu, cpu->memory[HL_addr]); break;			//ORA		M
+		case 0xB7: ORA(cpu, cpu->A); break;			//ORA		A
+		case 0xB8: CMP(cpu, cpu->B); break;			//CMP		B
+		case 0xB9: CMP(cpu, cpu->C); break;			//CMP		C
+		case 0xBA: CMP(cpu, cpu->D); break;			//CMP		D
+		case 0xBB: CMP(cpu, cpu->E); break;			//CMP		E
+		case 0xBC: CMP(cpu, cpu->H); break;			//CMP		H
+		case 0xBD: CMP(cpu, cpu->L); break;			//CMP		L
+		case 0xBE: CMP(cpu, cpu->memory[HL_addr]); break;			//CMP		M
+		case 0xBF: CMP(cpu, cpu->A); break;			//CMP		A
 
-				//0xC0 ... 0xCF
-				case 0xC0: conditional_ret(cpu, cpu->flags.Z==0); break;			//RNZ
-				case 0xC1: POP(cpu, &cpu->B, &cpu->C); break;		//POP		B
-				case 0xC2: conditional_jmp(cpu, cpu->flags.Z==0); break;		//JNZ
-				case 0xC3:			//JMP		a16
+		//0xC0 ... 0xCF
+		case 0xC0: conditional_ret(cpu, cpu->flags.Z==0); break;			//RNZ
+		case 0xC1: POP(cpu, &cpu->B, &cpu->C); break;		//POP		B
+		case 0xC2: conditional_jmp(cpu, cpu->flags.Z==0); break;		//JNZ
+		case 0xC3:			//JMP		a16
             mem_addr=get_immediate_addr(cpu, (cpu->PC)+1);
-	    			JMP(cpu, mem_addr);
-	    			break;
-				case 0xC4: conditional_call(cpu, cpu->flags.Z==0); break;		//CNZ
-				case 0xC5: PUSH(cpu, cpu->B, cpu->C); break;		//PUSH		B
-				case 0xC6: ADD_immediate(cpu, (cpu->PC)+1, 0); break;			//ADI		d8
-				case 0xC7: RST(cpu, 0); break;		//RST		0
-				case 0xC8: conditional_ret(cpu, cpu->flags.Z==1); break;			//RZ
-				case 0xC9: RET(cpu); break;		//RET
-				case 0xCA: conditional_jmp(cpu, cpu->flags.Z==1); break;		//JZ
-				case 0xCB: cpu->PC++; break;				//Undocumented Opcode
-				case 0xCC: conditional_call(cpu, cpu->flags.Z==1); break;		//CZ
-				case 0xCD:				//CALL		a16
-	    			mem_addr=get_immediate_addr(cpu, (cpu->PC)+1);
-	    			CALL(cpu, mem_addr);
-	    			break;
-				case 0xCE: ADD_immediate(cpu, (cpu->PC)+1, cpu->flags.C); break;		//ACI		d8
-				case 0xCF: RST(cpu, 1); break;			//RST		1
+	    	JMP(cpu, mem_addr);
+	    	break;
+		case 0xC4: conditional_call(cpu, cpu->flags.Z==0); break;		//CNZ
+		case 0xC5: PUSH(cpu, cpu->B, cpu->C); break;		//PUSH		B
+		case 0xC6: ADD_immediate(cpu, (cpu->PC)+1, 0); break;			//ADI		d8
+		case 0xC7: RST(cpu, 0); break;		//RST		0
+		case 0xC8: conditional_ret(cpu, cpu->flags.Z==1); break;			//RZ
+		case 0xC9: RET(cpu); break;		//RET
+		case 0xCA: conditional_jmp(cpu, cpu->flags.Z==1); break;		//JZ
+		case 0xCB: cpu->PC++; break;				//Undocumented Opcode
+		case 0xCC: conditional_call(cpu, cpu->flags.Z==1); break;		//CZ
+		case 0xCD:				//CALL		a16
+	    	mem_addr=get_immediate_addr(cpu, (cpu->PC)+1);
+	    	CALL(cpu, mem_addr);
+	    	break;
+		case 0xCE: ADD_immediate(cpu, (cpu->PC)+1, cpu->flags.C); break;		//ACI		d8
+		case 0xCF: RST(cpu, 1); break;			//RST		1
 
-				//0xD0 ... 0xDF
-				case 0xD0: conditional_ret(cpu, cpu->flags.C==0); break;				//RNC
-				case 0xD1: POP(cpu, &cpu->D, &cpu->E); break;		//POP		D
-				case 0xD2: conditional_jmp(cpu, cpu->flags.C==0); break;		//JNC
-				case 0xD3: break;			//OUT		d8
-				case 0xD4: conditional_call(cpu, cpu->flags.C==0); break;		//CNC
-				case 0xD5: PUSH(cpu, cpu->D, cpu->E); break;		//PUSH		D
-				case 0xD6: SUB_immediate(cpu, (cpu->PC)+1, 0); break;			//SUI		d8
-				case 0xD7: RST(cpu, 2); break;		//RST		2
-				case 0xD8: conditional_ret(cpu, cpu->flags.C==1); break;				//RC
-				case 0xD9: cpu->PC++; break;				//Undocumented Opcode
-				case 0xDA: conditional_jmp(cpu, cpu->flags.C==1); break;			//JC
-				case 0xDB: break;		//IN		d8
-				case 0xDC: conditional_call(cpu, cpu->flags.C==1); break;		//CC
-				case 0xDD: cpu->PC++; break;		//Undocumented Opcode
-				case 0xDE: SUB_immediate(cpu, (cpu->PC)+1, cpu->flags.C); break;		//SBI		d8
-				case 0xDF: RST(cpu, 3); break;		//RST		3
+		//0xD0 ... 0xDF
+		case 0xD0: conditional_ret(cpu, cpu->flags.C==0); break;				//RNC
+		case 0xD1: POP(cpu, &cpu->D, &cpu->E); break;		//POP		D
+		case 0xD2: conditional_jmp(cpu, cpu->flags.C==0); break;		//JNC
+		case 0xD3: break;			//OUT		d8
+		case 0xD4: conditional_call(cpu, cpu->flags.C==0); break;		//CNC
+		case 0xD5: PUSH(cpu, cpu->D, cpu->E); break;		//PUSH		D
+		case 0xD6: SUB_immediate(cpu, (cpu->PC)+1, 0); break;			//SUI		d8
+		case 0xD7: RST(cpu, 2); break;		//RST		2
+		case 0xD8: conditional_ret(cpu, cpu->flags.C==1); break;				//RC
+		case 0xD9: cpu->PC++; break;				//Undocumented Opcode
+		case 0xDA: conditional_jmp(cpu, cpu->flags.C==1); break;			//JC
+		case 0xDB: break;		//IN		d8
+		case 0xDC: conditional_call(cpu, cpu->flags.C==1); break;		//CC
+		case 0xDD: cpu->PC++; break;		//Undocumented Opcode
+		case 0xDE: SUB_immediate(cpu, (cpu->PC)+1, cpu->flags.C); break;		//SBI		d8
+		case 0xDF: RST(cpu, 3); break;		//RST		3
 
-				//0xE0 ... 0xEF
-				case 0xE0: conditional_ret(cpu, cpu->flags.P==0); break;			//RPO
-				case 0xE1: POP(cpu, &cpu->H, &cpu->L); break;			//POP		H
-				case 0xE2: conditional_jmp(cpu, cpu->flags.P==0); break;			//JPO
-				case 0xE3: XTHL(cpu); break;		//XTHL
-				case 0xE4: conditional_call(cpu, cpu->flags.P==0); break;		//CPO
-				case 0xE5: PUSH(cpu, cpu->H, cpu->L); break;		//PUSH		H
-				case 0xE6: ANI(cpu, (cpu->PC)+1); break;		//ANI		d8
-				case 0xE7: RST(cpu, 4); break;
-				case 0xE8: conditional_ret(cpu, cpu->flags.P==1);	break;			//RPE
-				case 0xE9: cpu->PC=HL_addr; break;			//PCHL
-				case 0xEA: conditional_jmp(cpu, cpu->flags.P==1); break;			//JPE
-				case 0xEB: XCHG(cpu); break;			//XCHG
-				case 0xEC: conditional_call(cpu, cpu->flags.P==1); break;		//CPE
-				case 0xED: cpu->PC++; break;			//Undocumented Opcode
-				case 0xEE: XRI(cpu, (cpu->PC)+1); break;		//XRI		d8
-				case 0xEF: RST(cpu, 5); break;
+		//0xE0 ... 0xEF
+		case 0xE0: conditional_ret(cpu, cpu->flags.P==0); break;			//RPO
+		case 0xE1: POP(cpu, &cpu->H, &cpu->L); break;			//POP		H
+		case 0xE2: conditional_jmp(cpu, cpu->flags.P==0); break;			//JPO
+		case 0xE3: XTHL(cpu); break;		//XTHL
+		case 0xE4: conditional_call(cpu, cpu->flags.P==0); break;		//CPO
+		case 0xE5: PUSH(cpu, cpu->H, cpu->L); break;		//PUSH		H
+		case 0xE6: ANI(cpu, (cpu->PC)+1); break;		//ANI		d8
+		case 0xE7: RST(cpu, 4); break;
+		case 0xE8: conditional_ret(cpu, cpu->flags.P==1);	break;			//RPE
+		case 0xE9: cpu->PC=HL_addr; break;			//PCHL
+		case 0xEA: conditional_jmp(cpu, cpu->flags.P==1); break;			//JPE
+		case 0xEB: XCHG(cpu); break;			//XCHG
+		case 0xEC: conditional_call(cpu, cpu->flags.P==1); break;		//CPE
+		case 0xED: cpu->PC++; break;			//Undocumented Opcode
+		case 0xEE: XRI(cpu, (cpu->PC)+1); break;		//XRI		d8
+		case 0xEF: RST(cpu, 5); break;
 
-				//0xF0 ... 0xFF
-				case 0xF0: conditional_ret(cpu, cpu->flags.S==0); break;			//RP
-				case 0xF1: POP_PSW(cpu); break;			//POP		PSW
-				case 0xF2: conditional_jmp(cpu, cpu->flags.S==0); break;		//JP
-				case 0xF3: cpu->interrupt_enable=0; cpu->PC++; break;		//DI
-				case 0xF4: conditional_call(cpu, cpu->flags.S==0); break;		//CP
-				case 0xF5: PUSH_PSW(cpu); break;			//PUSH		PSW
-				case 0xF6: ORI(cpu, (cpu->PC)+1); break;		//ORI		d8
-				case 0xF7: RST(cpu, 6); break;
-				case 0xF8: conditional_ret(cpu, cpu->flags.S==1); break;			//RM
-				case 0xF9: cpu->SP=HL_addr; cpu->PC++; break;			//SPHL
-				case 0xFA: conditional_jmp(cpu, cpu->flags.S==1); break;			//JM
-				case 0xFB: cpu->interrupt_enable=1; cpu->PC++; break;		//EI
-				case 0xFC: conditional_call(cpu, cpu->flags.S==1); break;		//CM
-				case 0xFD: cpu->PC++; break;				//Undocumented Opcode
-				case 0xFE: CPI(cpu, (cpu->PC)+1); break;			//CPI		d8
-				case 0xFF: RST(cpu, 7); break;
+		//0xF0 ... 0xFF
+		case 0xF0: conditional_ret(cpu, cpu->flags.S==0); break;			//RP
+		case 0xF1: POP_PSW(cpu); break;			//POP		PSW
+		case 0xF2: conditional_jmp(cpu, cpu->flags.S==0); break;		//JP
+		case 0xF3: cpu->interrupt_enable=0; cpu->PC++; break;		//DI
+		case 0xF4: conditional_call(cpu, cpu->flags.S==0); break;		//CP
+		case 0xF5: PUSH_PSW(cpu); break;			//PUSH		PSW
+		case 0xF6: ORI(cpu, (cpu->PC)+1); break;		//ORI		d8
+		case 0xF7: RST(cpu, 6); break;
+		case 0xF8: conditional_ret(cpu, cpu->flags.S==1); break;			//RM
+		case 0xF9: cpu->SP=HL_addr; cpu->PC++; break;			//SPHL
+		case 0xFA: conditional_jmp(cpu, cpu->flags.S==1); break;			//JM
+		case 0xFB: cpu->interrupt_enable=1; cpu->PC++; break;		//EI
+		case 0xFC: conditional_call(cpu, cpu->flags.S==1); break;		//CM
+		case 0xFD: cpu->PC++; break;				//Undocumented Opcode
+		case 0xFE: CPI(cpu, (cpu->PC)+1); break;			//CPI		d8
+		case 0xFF: RST(cpu, 7); break;
 
-				default: printf("Invalid opcode!\n"); break;
+		default: printf("Invalid opcode!\n"); break;
     }
-
-    #if PRINT_VALUES_FLAG
-        print_values(cpu);
-    #endif
 }
 
 //Initialize an i8080 cpu
@@ -958,8 +957,8 @@ i8080* i8080_init(){
 //For debugging purposes
 void print_values(i8080* cpu){
     printf("\tA=$%02x, B=$%02x, C=$%02x, D=$%02x, E=$%02x, H=$%02x, L=$%02x, SP=$%04x\n",
-					cpu->A, cpu->B, cpu->C, cpu->D, cpu->E, cpu->H, cpu->L, cpu->SP);
+		cpu->A, cpu->B, cpu->C, cpu->D, cpu->E, cpu->H, cpu->L, cpu->SP);
 
     printf("\tZ=%d, S=%d, P=%d, CY=%d, AC=%d\n",
-					cpu->flags.Z, cpu->flags.S, cpu->flags.P, cpu->flags.C, cpu->flags.AC);
+		cpu->flags.Z, cpu->flags.S, cpu->flags.P, cpu->flags.C, cpu->flags.AC);
 }
