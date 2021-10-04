@@ -109,7 +109,8 @@ void machine_update_screen(machine_t* machine){
             uint8_t data_byte=machine->machine_mem[offset];
 
             for(int bit=0; bit<8; bit++){
-                if(y>0 && y<=30){
+                
+                if(y>0 && y<=30){       //Scoreboard is in black and white
                     if((data_byte<<bit) & 0x80){
                         machine->screen_buffer[y+bit][x][R]=255;
                         machine->screen_buffer[y+bit][x][G]=255;
@@ -121,7 +122,7 @@ void machine_update_screen(machine_t* machine){
                         machine->screen_buffer[y+bit][x][B]=0;
                     }
                 }
-                else if(y>31 && y<60){
+                else if(y>31 && y<60){      //Right underneath the scoreboard, pixels landed there would be in red
                     if((data_byte<<bit) & 0x80){
                         machine->screen_buffer[y+bit][x][R]=204;
                         machine->screen_buffer[y+bit][x][G]=0;
@@ -133,7 +134,7 @@ void machine_update_screen(machine_t* machine){
                         machine->screen_buffer[y+bit][x][B]=0;
                     }
                 }
-                else if(y>=192){
+                else if(y>=192){       //Bottom portion of the screen is in green
                     if((data_byte<<bit) & 0x80){
                         machine->screen_buffer[y+bit][x][R]=0;
                         machine->screen_buffer[y+bit][x][G]=204;
@@ -145,7 +146,7 @@ void machine_update_screen(machine_t* machine){
                         machine->screen_buffer[y+bit][x][B]=0;
                     }
                 }
-                else{
+                else{       //Everything else is black and white
                     if((data_byte<<bit) & 0x80){
                         machine->screen_buffer[y+bit][x][R]=255;
                         machine->screen_buffer[y+bit][x][G]=255;
