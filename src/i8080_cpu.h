@@ -4,9 +4,6 @@
 #include <inttypes.h>
 #include <string.h>
 
-#define DISASSEMBLY_ON_FLAG    0
-#define PRINT_VALUES_FLAG      0
-
 typedef struct {
     uint8_t S:1;    //Sign flag
     uint8_t Z:1;    //Zero flag
