@@ -38,7 +38,7 @@ To install on Ubuntu, use command:
 
 # Todos
 - Yet to add sound to the game (whenever the user presses shoot, and also when collision between the shot and the alien(s) collide)
-- Will look into audio libraries for Linux (Does SDL contain audio rendering?)
+- Will look into SDL_mixer 2.0 library for audio rendering
 
 # References
 - https://altairclone.com/downloads/manuals/8080%20Programmers%20Manual.pdf (In-depth programming manual for i8080)
