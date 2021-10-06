@@ -347,26 +347,18 @@ static inline void STA(i8080* cpu, uint16_t pc){
 }
 
 //Generate an interrupt
-void generate_interrupt(i8080* cpu, uint16_t addr){
-    //First save the PC onto the stack
+void RST(i8080* cpu, uint8_t int_num){
+    //Obtain interrupt service routine address from the int_num
+    //RST addr = 8 * int_num
+    uint16_t rst_addr=8 * int_num;
+    
+    //Push the program counter onto the stack
     write_mem(cpu, (cpu->SP)-1, cpu->PC >> 8);
     write_mem(cpu, (cpu->SP)-2, cpu->PC & 0xFF);
     cpu->SP-=2;
-
-    cpu->PC=addr;
-}
-
-void RST(i8080* cpu, uint8_t int_num){
-    switch(int_num){
-	case 0: generate_interrupt(cpu, 0x0000); break;
-	case 1: generate_interrupt(cpu, 0x0008); break;
-	case 2: generate_interrupt(cpu, 0x0010); break;
-	case 3: generate_interrupt(cpu, 0x0018); break;
-	case 4: generate_interrupt(cpu, 0x0020); break;
-	case 5: generate_interrupt(cpu, 0x0028); break;
-	case 6: generate_interrupt(cpu, 0x0030); break;
-	case 7: generate_interrupt(cpu, 0x0038); break;
-    }
+    
+    //Set the program counter to the rst_addr
+    JMP(cpu, rst_addr);
 }
 
 /******************************************************************************/
@@ -399,42 +391,28 @@ static inline void DCR(i8080* cpu, uint8_t* reg){
 }
 
 static inline void RLC(i8080* cpu){
-    bool cy=(cpu->A & 0x80)!=0;
-
-    cpu->A=(cpu->A <<1)|cy;
-
-    cpu->flags.C=cy;
-
+    cpu->flags.C=cpu->A >> 7;
+    cpu->A=(cpu->A << 1)|cpu->flags.C;
     cpu->PC++;
 }
 
 static inline void RAL(i8080* cpu){
-    bool cy=(cpu->A & 0x80)!=0;
-
-    cpu->A=(cpu->A <<1)|cpu->flags.C;
-
-    cpu->flags.C=cy;
-
+    bool old_cy=cpu->flags.C;
+    cpu->flags.C=cpu->A >> 7;
+    cpu->A=(cpu->A << 1)|old_cy;
     cpu->PC++;
 }
 
 static inline void RRC(i8080* cpu){
-    bool l_bit=(cpu->A & 0x01)!=0;
-
-    cpu->A=(l_bit <<7)|(cpu->A >>1);
-
-    cpu->flags.C=l_bit;
-
+    cpu->flags.C=cpu->A & 1;
+    cpu->A=(cpu->A >> 1)|(cpu->flags.C << 7);
     cpu->PC++;
 }
 
 static inline void RAR(i8080* cpu){
-    bool l_bit=(cpu->A & 0x01)!=0;
-
-    cpu->A=(cpu->flags.C <<7)|(cpu->A >>1);
-
-    cpu->flags.C=l_bit;
-
+    bool old_cy=cpu->flags.C;
+    cpu->flags.C=cpu->A & 1;
+    cpu->A=(cpu->A >> 1)|((old_cy << 7));
     cpu->PC++;
 }
 
