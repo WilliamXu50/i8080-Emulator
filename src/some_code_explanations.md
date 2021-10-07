@@ -8,29 +8,29 @@ and with a 2 MHz CPU. This means that every second, 60 frames will be updated an
 every 1/60 secs (or ~17 ms) a new frame will be updated. 
 So the main loop will look as the follows:
 
-`while(not_quit){
+while(not_quit){
      //run the game
-}`
+}
 
 Next we will need a timing system to track the interval of 17 ms. I used the built in `SDL_GetTicks()` built-in function from the SDL library, 
 but it can also be done using `gettimeofday()` from `sys/time.h` (assuming you're using an POSIX-interfaced OS).
 
-`while(not_quit){
+while(not_quit){
       //get user keyboard input
       //Get elapsed time
       //...
-}`
+}
 
 Since 60 frames needs to be updated and displayed in 1 sec (e.g. updated & displayed every 17 ms), we need a conditional that ill check 
 if 17 ms has elapsed:
 
-`while(not_quit){`
+while(not_quit){
     //get user keyboard input
      
     if(//elapsed time >= 17 ms){
-         `//...`
+         //...
     }
-`}`
+}
 
 Now to understand what happens after every 17 ms interval, we will examine how the actual game itself is displayed on the screen.
 The game updates the screen twice during each frame; once when the video rendering reaches the middle of the screen (during which a 
@@ -48,7 +48,7 @@ end-of-screen interrupt will trigger after a full `CLOCK_RATE/FPS` cycles has co
 
 Below is a code snippet of the main driver loop:
 
-`while(not_quit){
+while(not_quit){
       //get user keyboard input
      
       if(//elapsed time >= 17 ms){
@@ -76,7 +76,7 @@ Below is a code snippet of the main driver loop:
             //Update screen buffer
             //Update screen buffer to display (render graphics)
       }
-}`
+}
 
 [1] Execute instructions from the program memory (using the 8080 emulator), and then updates the `cpu_cycles` count. 
 This effectively keeps track of the total number of CPU cycles taken as the result of executing program instructions. This will ensure 
