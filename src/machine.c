@@ -48,7 +48,6 @@ void load_file_into_mem(machine_t* machine, char* file_path, uint16_t offset){
     fseek(fp, 0, SEEK_SET);
 
     //Read file into machine memory
-    //uint8_t* buffer=&machine->machine_mem[offset];
     fread(&machine->machine_mem[offset], f_size, 1, fp);
 
     fclose(fp);
