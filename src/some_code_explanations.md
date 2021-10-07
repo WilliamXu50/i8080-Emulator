@@ -24,13 +24,13 @@ but it can also be done using `gettimeofday()` from `sys/time.h` (assuming you'r
 Since 60 frames needs to be updated and displayed in 1 sec (e.g. updated & displayed every 17 ms), we need a conditional that ill check 
 if 17 ms has elapsed:
 
-`while(not_quit){
-      //get user keyboard input
+`while(not_quit){`
+    `//get user keyboard input`
      
-      if(//elapsed time >= 17 ms){
-           //...
-      }
-}`
+    `if(//elapsed time >= 17 ms){`
+         `//...`
+    `}`
+`}`
 
 Now to understand what happens after every 17 ms interval, we will examine how the actual game itself is displayed on the screen.
 The game updates the screen twice during each frame; once when the video rendering reaches the middle of the screen (during which a 
