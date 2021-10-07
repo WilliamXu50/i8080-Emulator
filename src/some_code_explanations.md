@@ -25,11 +25,11 @@ Since 60 frames needs to be updated and displayed in 1 sec (e.g. updated & displ
 if 17 ms has elapsed:
 
 `while(not_quit){`
-    `//get user keyboard input`
+    //get user keyboard input
      
-    `if(//elapsed time >= 17 ms){`
+    if(//elapsed time >= 17 ms){
          `//...`
-    `}`
+    }
 `}`
 
 Now to understand what happens after every 17 ms interval, we will examine how the actual game itself is displayed on the screen.
