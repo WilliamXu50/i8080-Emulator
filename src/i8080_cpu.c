@@ -207,9 +207,9 @@ void XTHL(i8080* cpu){
     cpu->PC++;
 }
 
-void LXI(i8080* cpu, uint8_t *reg1, uint8_t* reg2, uint16_t pc){
-    *reg1=read_mem(cpu, pc+1);
-    *reg2=read_mem(cpu, pc);
+void LXI(i8080* cpu, uint8_t *reg1, uint8_t* reg2){
+    *reg1=read_mem(cpu, (cpu->PC)+2);
+    *reg2=read_mem(cpu, (cpu->PC)+1);
 
     cpu->PC+=3;
 }
@@ -316,8 +316,8 @@ static inline void LDAX(i8080* cpu, uint8_t reg1, uint8_t reg2){
     cpu->PC++;
 }
 
-static inline void LDA(i8080* cpu, uint16_t pc){
-    uint16_t mem_addr=get_immediate_addr(cpu, pc);
+static inline void LDA(i8080* cpu){
+    uint16_t mem_addr=get_immediate_addr(cpu, (cpu->PC)+1);
     cpu->A=read_mem(cpu, mem_addr);
 
     cpu->PC+=3;
@@ -333,14 +333,14 @@ static inline void STAX(i8080* cpu, uint8_t reg1, uint8_t reg2){
     cpu->PC++;
 }
 
-static inline void MVI(i8080* cpu, uint8_t* dest, uint16_t pc){
-    *dest=read_mem(cpu, pc);
+static inline void MVI(i8080* cpu, uint8_t* dest){
+    *dest=read_mem(cpu, (cpu->PC)+1);
 
     cpu->PC+=2;
 }
 
-static inline void STA(i8080* cpu, uint16_t pc){
-    uint16_t mem_addr=get_immediate_addr(cpu, pc);
+static inline void STA(i8080* cpu){
+    uint16_t mem_addr=get_immediate_addr(cpu, (cpu->PC)+1);
     write_mem(cpu, mem_addr, cpu->A);
 
     cpu->PC+=3;
@@ -446,8 +446,8 @@ static inline void ADD(i8080* cpu, uint8_t val, bool carry){
     cpu->PC++;
 }
 
-static inline void ADD_immediate(i8080* cpu, uint16_t pc, bool carry){
-    uint8_t byte=read_mem(cpu, pc);
+static inline void ADD_immediate(i8080* cpu, bool carry){
+    uint8_t byte=read_mem(cpu, (cpu->PC)+1);
 
     cpu->A=add_bytes_set_flag(cpu, cpu->A, byte, carry);
     cpu->PC+=2;		//For the additional data byte
@@ -459,8 +459,8 @@ static inline void SUB(i8080* cpu, uint8_t val, uint8_t carry){
     cpu->PC++;
 }
 
-static inline void SUB_immediate(i8080* cpu, uint16_t pc, uint8_t carry){
-    uint8_t byte=read_mem(cpu, pc);
+static inline void SUB_immediate(i8080* cpu, uint8_t carry){
+    uint8_t byte=read_mem(cpu, (cpu->PC)+1);
 
     cpu->A=sub_bytes_set_flag(cpu, cpu->A, byte, carry);
     cpu->PC+=2;		//For the additional data byte
@@ -478,8 +478,8 @@ static inline void ANA(i8080* cpu, uint8_t val){
     cpu->PC++;
 }
 
-static inline void ANI(i8080* cpu, uint16_t pc){
-    uint8_t byte=read_mem(cpu, pc);
+static inline void ANI(i8080* cpu){
+    uint8_t byte=read_mem(cpu, (cpu->PC)+1);
     ANA(cpu, byte);
     cpu->PC++;		//For the additional data byte
 }
@@ -496,8 +496,8 @@ static inline void XRA(i8080* cpu, uint8_t val){
     cpu->PC++;
 }
 
-static inline void XRI(i8080* cpu, uint16_t pc){
-    uint8_t byte=read_mem(cpu, pc);
+static inline void XRI(i8080* cpu){
+    uint8_t byte=read_mem(cpu, (cpu->PC)+1);
     XRA(cpu, byte);
     cpu->PC++;		//For the additional data byte
 }
@@ -514,8 +514,8 @@ static inline void ORA(i8080* cpu, uint8_t val){
     cpu->PC++;
 }
 
-static inline void ORI(i8080* cpu, uint16_t pc){
-    uint8_t byte=read_mem(cpu, pc);
+static inline void ORI(i8080* cpu){
+    uint8_t byte=read_mem(cpu, (cpu->PC)+1);
     ORA(cpu, byte);
     cpu->PC++;		//For the additional data byte
 }
@@ -526,8 +526,8 @@ static inline void CMP(i8080* cpu, uint8_t val){
     cpu->PC++;
 }
 
-static inline void CPI(i8080* cpu, uint16_t pc){
-    uint8_t byte=read_mem(cpu, pc);
+static inline void CPI(i8080* cpu){
+    uint8_t byte=read_mem(cpu, (cpu->PC)+1);
     CMP(cpu, byte);
     cpu->PC++;		//For the additional data byte
 }
@@ -597,12 +597,12 @@ void i8080_emulator(i8080* cpu){
     switch(opcode){
         //0x00 ... 0x0F
         case 0x00: cpu->PC++; break;			//NOP
-        case 0x01: LXI(cpu, &cpu->B, &cpu->C, (cpu->PC)+1); break;			//LXI		B, d16
+        case 0x01: LXI(cpu, &cpu->B, &cpu->C); break;			//LXI		B, d16
         case 0x02: STAX(cpu, cpu->B, cpu->C); break;			//STAX	B
         case 0x03: INX(cpu, &cpu->B, &cpu->C); break;			//INX		B
         case 0x04: INR(cpu, &cpu->B); break;			//INR		B
         case 0x05: DCR(cpu, &cpu->B); break;			//DCR		B
-        case 0x06: MVI(cpu, &cpu->B, (cpu->PC)+1); break;			//MVI		B, d8
+        case 0x06: MVI(cpu, &cpu->B); break;			//MVI		B, d8
         case 0x07: RLC(cpu); break;			//RLC
         case 0x08: cpu->PC++; break;		//Undocumented opcode
         case 0x09: DAD(cpu, cpu->B, cpu->C); break;			//DAD		B
@@ -610,17 +610,17 @@ void i8080_emulator(i8080* cpu){
         case 0x0B: DCX(cpu, &cpu->B, &cpu->C); break;			//DCX		B
         case 0x0C: INR(cpu, &cpu->C); break;				//INR		C
         case 0x0D: DCR(cpu, &cpu->C); break;				//DCR		C
-        case 0x0E: MVI(cpu, &cpu->C, (cpu->PC)+1); break;			//MVI		C, d8
+        case 0x0E: MVI(cpu, &cpu->C); break;			//MVI		C, d8
         case 0x0F: RRC(cpu); break;			//RRC
 
         //0x10 ... 0x1F
         case 0x10: cpu->PC++; break;		//Undocumented opcode
-        case 0x11: LXI(cpu, &cpu->D, &cpu->E, (cpu->PC)+1); break;			//LXI		D, d16
+        case 0x11: LXI(cpu, &cpu->D, &cpu->E); break;			//LXI		D, d16
         case 0x12: STAX(cpu, cpu->D, cpu->E); break;			//STAX	 D
         case 0x13: INX(cpu, &cpu->D, &cpu->E); break;			//INX		D
         case 0x14: INR(cpu, &cpu->D); break;			//INR		D
         case 0x15: DCR(cpu, &cpu->D); break;			//DCR		D
-        case 0x16: MVI(cpu, &cpu->D, (cpu->PC)+1); break;			//MVI		D, d8
+        case 0x16: MVI(cpu, &cpu->D); break;			//MVI		D, d8
         case 0x17: RAL(cpu); break;			//RAL
         case 0x18: cpu->PC++; break;			//Undocumented opcode
         case 0x19: DAD(cpu, cpu->D, cpu->E); break;			//DAD		D
@@ -628,17 +628,17 @@ void i8080_emulator(i8080* cpu){
         case 0x1B: DCX(cpu, &cpu->D, &cpu->E); break;			//DCX		D
         case 0x1C: INR(cpu, &cpu->E); break;			//INR		E
         case 0x1D: DCR(cpu, &cpu->E); break;			//DCR		E
-        case 0x1E: MVI(cpu, &cpu->E, (cpu->PC)+1); break;			//MVI		E, d8
+        case 0x1E: MVI(cpu, &cpu->E); break;			//MVI		E, d8
         case 0x1F: RAR(cpu); break;			//RAR
 
         //0x20 ... 0x2F
         case 0x20: cpu->PC++; break;			//Undocumented opcode
-        case 0x21: LXI(cpu, &cpu->H, &cpu->L,(cpu->PC)+1); break;			//LXI		H, d16
+        case 0x21: LXI(cpu, &cpu->H, &cpu->L); break;			//LXI		H, d16
         case 0x22: SHLD(cpu); break;			//SHLD
         case 0x23: INX(cpu, &cpu->H, &cpu->L); break;			//INX		H
         case 0x24: INR(cpu, &cpu->H); break;			//INR		H
         case 0x25: DCR(cpu, &cpu->H); break;			//DCR		H
-        case 0x26: MVI(cpu, &cpu->H, (cpu->PC)+1); break;			//MVI		H, d8
+        case 0x26: MVI(cpu, &cpu->H); break;			//MVI		H, d8
         case 0x27: DAA(cpu); break;			//DAA
         case 0x28: cpu->PC++; break;		//Undocumented opcode
         case 0x29: DAD(cpu, cpu->H, cpu->L); break;			//DAD		H
@@ -646,7 +646,7 @@ void i8080_emulator(i8080* cpu){
         case 0x2B: DCX(cpu, &cpu->H, &cpu->L); break;			//DCX		H
         case 0x2C: INR(cpu, &cpu->L); break;			//INR		L
         case 0x2D: DCR(cpu, &cpu->L); break;			//DCR		L
-        case 0x2E: MVI(cpu, &cpu->L, (cpu->PC)+1); break;			//MVI		L, d8
+        case 0x2E: MVI(cpu, &cpu->L); break;			//MVI		L, d8
         case 0x2F: cpu->A=~(cpu->A); cpu->PC++; break;			//CMA
 
         //0x30 ... 0x3F
@@ -657,19 +657,19 @@ void i8080_emulator(i8080* cpu){
             cpu->SP=byte_pair_concat(byte1, byte2);
             cpu->PC+=3;
             break;
-        case 0x32: STA(cpu, (cpu->PC)+1); break;			//STA		d16
+        case 0x32: STA(cpu); break;			//STA		d16
         case 0x33: cpu->SP++; cpu->PC++; break;			//INX		SP
         case 0x34: INR(cpu, &cpu->memory[HL_addr]); break;			//INR		M
         case 0x35: DCR(cpu, &cpu->memory[HL_addr]); break;			//DCR		M
-        case 0x36: MVI(cpu, &cpu->memory[HL_addr], (cpu->PC)+1); break;			//MVI		M, d8
+        case 0x36: MVI(cpu, &cpu->memory[HL_addr]); break;			//MVI		M, d8
         case 0x37: cpu->flags.C=1; cpu->PC++; break;			//STC
         case 0x38: cpu->PC++; break;			//Undocumented opcode
         case 0x39: DAD(cpu, (cpu->SP)>>8, (cpu->SP) & 0xFF); break;			//DAD		SP
-        case 0x3A: LDA(cpu, (cpu->PC)+1); break;			//LDA		d16
+        case 0x3A: LDA(cpu); break;			//LDA		d16
         case 0x3B: cpu->SP--; cpu->PC++; break;			//DCX		SP
         case 0x3C: INR(cpu, &cpu->A); break;			//INR		A
         case 0x3D: DCR(cpu, &cpu->A); break;			//DCR		A
-        case 0x3E: MVI(cpu, &cpu->A, (cpu->PC)+1); break;			//MVI		A, d8
+        case 0x3E: MVI(cpu, &cpu->A); break;			//MVI		A, d8
         case 0x3F: cpu->flags.C=~(cpu->flags.C); cpu->PC++; break;			//CMC
 
 	//0x40 ... 0x4F
@@ -825,7 +825,7 @@ void i8080_emulator(i8080* cpu){
 	    break;
 	case 0xC4: conditional_call(cpu, cpu->flags.Z==0); break;		//CNZ
 	case 0xC5: PUSH(cpu, cpu->B, cpu->C); break;		//PUSH		B
-	case 0xC6: ADD_immediate(cpu, (cpu->PC)+1, 0); break;			//ADI		d8
+	case 0xC6: ADD_immediate(cpu, 0); break;			//ADI		d8
 	case 0xC7: RST(cpu, 0); break;		//RST		0
 	case 0xC8: conditional_ret(cpu, cpu->flags.Z==1); break;			//RZ
 	case 0xC9: RET(cpu); break;		//RET
@@ -836,7 +836,7 @@ void i8080_emulator(i8080* cpu){
 	    mem_addr=get_immediate_addr(cpu, (cpu->PC)+1);
 	    CALL(cpu, mem_addr);
 	    break;
-	case 0xCE: ADD_immediate(cpu, (cpu->PC)+1, cpu->flags.C); break;		//ACI		d8
+	case 0xCE: ADD_immediate(cpu, cpu->flags.C); break;		//ACI		d8
 	case 0xCF: RST(cpu, 1); break;			//RST		1
 
 	//0xD0 ... 0xDF
@@ -846,7 +846,7 @@ void i8080_emulator(i8080* cpu){
 	case 0xD3: break;			//OUT		d8
 	case 0xD4: conditional_call(cpu, cpu->flags.C==0); break;		//CNC
 	case 0xD5: PUSH(cpu, cpu->D, cpu->E); break;		//PUSH		D
-	case 0xD6: SUB_immediate(cpu, (cpu->PC)+1, 0); break;			//SUI		d8
+	case 0xD6: SUB_immediate(cpu, 0); break;			//SUI		d8
 	case 0xD7: RST(cpu, 2); break;		//RST		2
 	case 0xD8: conditional_ret(cpu, cpu->flags.C==1); break;				//RC
 	case 0xD9: cpu->PC++; break;				//Undocumented Opcode
@@ -854,7 +854,7 @@ void i8080_emulator(i8080* cpu){
 	case 0xDB: break;		//IN		d8
 	case 0xDC: conditional_call(cpu, cpu->flags.C==1); break;		//CC
 	case 0xDD: cpu->PC++; break;		//Undocumented Opcode
-	case 0xDE: SUB_immediate(cpu, (cpu->PC)+1, cpu->flags.C); break;		//SBI		d8
+	case 0xDE: SUB_immediate(cpu, cpu->flags.C); break;		//SBI		d8
 	case 0xDF: RST(cpu, 3); break;		//RST		3
 
 	//0xE0 ... 0xEF
@@ -864,7 +864,7 @@ void i8080_emulator(i8080* cpu){
 	case 0xE3: XTHL(cpu); break;		//XTHL
 	case 0xE4: conditional_call(cpu, cpu->flags.P==0); break;		//CPO
 	case 0xE5: PUSH(cpu, cpu->H, cpu->L); break;		//PUSH		H
-	case 0xE6: ANI(cpu, (cpu->PC)+1); break;		//ANI		d8
+	case 0xE6: ANI(cpu); break;		//ANI		d8
 	case 0xE7: RST(cpu, 4); break;
 	case 0xE8: conditional_ret(cpu, cpu->flags.P==1);	break;			//RPE
 	case 0xE9: cpu->PC=HL_addr; break;			//PCHL
@@ -872,7 +872,7 @@ void i8080_emulator(i8080* cpu){
 	case 0xEB: XCHG(cpu); break;			//XCHG
 	case 0xEC: conditional_call(cpu, cpu->flags.P==1); break;		//CPE
 	case 0xED: cpu->PC++; break;			//Undocumented Opcode
-	case 0xEE: XRI(cpu, (cpu->PC)+1); break;		//XRI		d8
+	case 0xEE: XRI(cpu); break;		//XRI		d8
 	case 0xEF: RST(cpu, 5); break;
 
 	//0xF0 ... 0xFF
@@ -882,7 +882,7 @@ void i8080_emulator(i8080* cpu){
 	case 0xF3: cpu->interrupt_enable=0; cpu->PC++; break;		//DI
 	case 0xF4: conditional_call(cpu, cpu->flags.S==0); break;		//CP
 	case 0xF5: PUSH_PSW(cpu); break;			//PUSH		PSW
-	case 0xF6: ORI(cpu, (cpu->PC)+1); break;		//ORI		d8
+	case 0xF6: ORI(cpu); break;		//ORI		d8
 	case 0xF7: RST(cpu, 6); break;
 	case 0xF8: conditional_ret(cpu, cpu->flags.S==1); break;			//RM
 	case 0xF9: cpu->SP=HL_addr; cpu->PC++; break;			//SPHL
@@ -890,7 +890,7 @@ void i8080_emulator(i8080* cpu){
 	case 0xFB: cpu->interrupt_enable=1; cpu->PC++; break;		//EI
 	case 0xFC: conditional_call(cpu, cpu->flags.S==1); break;		//CM
 	case 0xFD: cpu->PC++; break;				//Undocumented Opcode
-	case 0xFE: CPI(cpu, (cpu->PC)+1); break;			//CPI		d8
+	case 0xFE: CPI(cpu); break;			//CPI		d8
 	case 0xFF: RST(cpu, 7); break;
 
 	default: printf("Invalid opcode!\n"); break;
