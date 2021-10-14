@@ -13,7 +13,7 @@ To install on Ubuntu, use command:
 `sudo apt install libsdl2-dev`
 
 # ROM Files:
-- Technically I'm not suppose to upload the ROM files for Space Invaders for copyright reasons, but since this repository is private, I uploaded it anyway (in `ROM` folder)
+- The required ROM files for Space Invaders are placed in `ROM` folder
 - You can find these files online and download them and move them to whatever location you wish (but just be sure to use the correct file path when opening the files in your source code).
 
 # Build:
