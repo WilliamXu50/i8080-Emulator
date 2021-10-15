@@ -40,4 +40,6 @@ void machine_execute(machine_t* machine);
 
 void machine_update_screen(machine_t* machine);
 
+void generate_interrupt(machine_t* machine, uint8_t int_num);
+
 #endif
