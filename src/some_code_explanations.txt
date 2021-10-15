@@ -6,29 +6,18 @@ The main loop of the game does the following:
 As long as the player doesn't press exit on the console window or press 'Q', the game will run. Space Invaders runs on 60 fps 
 and with a 2 MHz CPU. This means that every second, 60 frames will be updated and displayed on the screen, which would mean that 
 every 1/60 secs (or ~17 ms) a new frame will be updated. 
-So the main loop will look as the follows:
 
-while(not_quit){
-     //run the game
-}
+Next we will need a timing system to track the interval of 17 ms. I used the "DL_GetTicks()"built-in function from the SDL library, 
+but it can also be done using "ettimeofday()"from "sys/time.h" (assuming you're using an POSIX-compliant OS).
 
-Next we will need a timing system to track the interval of 17 ms. I used the built in `SDL_GetTicks()` built-in function from the SDL library, 
-but it can also be done using `gettimeofday()` from `sys/time.h` (assuming you're using an POSIX-interfaced OS).
-
-while(not_quit){
-      //get user keyboard input
-      //Get elapsed time
-      //...
-}
-
-Since 60 frames needs to be updated and displayed in 1 sec (e.g. updated & displayed every 17 ms), we need a conditional that ill check 
+Since 60 frames needs to be updated and displayed in 1 sec (e.g. updated & displayed every 17 ms), we need a conditional that wll check 
 if 17 ms has elapsed:
 
 while(not_quit){
-    //get user keyboard input
-     
+
     if(//elapsed time >= 17 ms){
-         //...
+         //get user keyboard input
+         //Do other stuff...
     }
 }
 
@@ -48,61 +37,69 @@ end-of-screen interrupt will trigger after a full `CLOCK_RATE/FPS` cycles has co
 
 Below is a code snippet of the main driver loop:
 
-while(not_quit){
-      //get user keyboard input
-     
-      if(//elapsed time >= 17 ms){
-            //Begin a new frame
-            //Update the current time first
+while(machine->quit_status!=1){
+    //Every 17 ms a new frame updates (very roughly 60 fps)
+    if((SDL_GetTicks() - time) > (1.0f / FPS) * 1000){
+       //Update elapsed time
+       time=SDL_GetTicks();
             
-            int cpu_cycles=0;     //This will keep track of the total number of CPU cycles
+       //Get user input
+       keyboard_handler(machine);
+
+       int total_cycles=0;   //Total number of instruction cycles
+
+       int current_cycle=0;    /*machine->cpu->instruction_cycles-current_cycle
+                                      would give the CPU cycles after executing an instruction*/
+
+[1]    while(total_cycles<=HALF_CYCLES_PER_FRAME){
+           current_cycle=machine->cpu->instruction_cycles;
+           machine_execute(machine);
+           total_cycles+=machine->cpu->instruction_cycles-current_cycle;
+       }
+       //Generate mid-screen interrupt (interrupt number = 1)
+       generate_interrupt(machine, 1);
+
+       current_cycle=0;
+
+-------------------------------------------------------------------------------------------------------
+
+ [2]   while(total_cycles<=CYCLES_PER_FRAME){
+           current_cycle=machine->cpu->instruction_cycles;
+           machine_execute(machine);
+           total_cycles+=machine->cpu->instruction_cycles-current_cycle;
+       }
+       //Generate end-of-screen interrupt (interrupt number = 2)
+       generate_interrupt(machine, 2);
             
-            while(cpu_cycles <= CLOCK_RATE/FPS){
-            
-[1]               int current_cycle=machine->cpu->instruction_cycles;
-
-                  machine_execute(machine);
-
-                  cpu_cycles+=machine->cpu->instruction_cycles-current_cycle;
- -------------------------------------------------------------------------------------------
-[2]               if(machine->cpu->instruction_cycles>=HALF_CYCLES_PER_FRAME){
-                        //Trigger interrupts
-                        
-                        machine->cpu->instruction_cycles-=HALF_CYCLES_PER_FRAME;
-
-                        machine->int_num=(machine->int_num==1 ? 2 : 1);
-                  }
-            }
-            //Update screen buffer
-            //Update screen buffer to display (render graphics)
-      }
+       machine_update_screen(machine);
+       render_graphics(game_display, machine);
+    }
 }
 
-[1] Execute instructions from the program memory (using the 8080 emulator), and then updates the `cpu_cycles` count. 
-This effectively keeps track of the total number of CPU cycles taken as the result of executing program instructions. This will ensure 
-that the total number of CPU cycles won't exceed `CLOCK_RATE/FPS` cycles for any frame.
+[1] This part executes the instructions of the game until the total instruction count for that specific frame ("total_cycles") reaches
+around HALF_CYCLES_PER_FRAME (half of the maximum cycles for a single frame). Then the mid-screen interrupt would trigger, with the 
+interrupt number of 1 (which would set the RST address to 0x0008). 
 
-[2] Once the CPU cycles reaches around  ~`1/2 CLOCK_RATE/FPS` cycles, the mid-screen interrupt will trigger. Note here that for [2], I used the 
-struct member variable `machine->cpu->instruction_cycles` instead of `cpu_cycles` to compare the total number of CPU cycles. This is because I 
-designed it so that `machine->cpu->instruction_cycles` will be decremented by `1/2 CLOCK_RATE/FPS` cycles after the mid-screen interrupt triggers, 
-while `cpu_cycles` will keep on incrementing after executing instructions.
+[2] After the mid-screen ISR is executed, the control is restored to the previous point of execution. The instructions of the game keeps on
+executing until "total_cycles" reaches CYCLES_PER_FRAME (the maximum instruction cycles per frame). Then the end-of-screen interrupt would
+trigger with the interrupt number of 2 (which would set the RST address to 0x0010)
 
-This way, `machine->cpu->instruction_cycles` will keep track of when to trigger mid-screen interrupt as well as the end-of-screen interrupt 
-(since both interrupts are `1/2 CLOCK_RATE/FPS` cycles apart). And `cpu_cycles` will ensure that we don't exceed the appropriate number of cycles 
-per frame. Also note that the interrupt number alternates after every interrupt trigger, thus the interrupts will alternate between 
-mid-screen and end-of-screen, starting with the mid-screen interrupt for every frame.
+(note): 
+   < current_cycle=machine->cpu->instruction_cycles;
+     machine_execute(machine);
+     total_cycles+=machine->cpu->instruction_cycles-current_cycle;   >
+     
+will return the CPU cycles for an instruction after executing it, adding it to the total_cycles. This is done by first storing the current
+instruction cycles of the CPU ("machine->cpu->instruction_cycles") into the variable "current_cycle". Then the next instruction is executed by machine-execute(), which also adds in the CPU cycles for the executed instruction into "machine->cpu->instruction_cycles". Then the difference
+between the total instruction cycles before and after executing the instruction is added into the total_cycles count.
 
 So, the code snippet above does the following: 
-assuming the player doesn't quit or exit, the user keyboard input is first polled, then:
+assuming the player doesn't press 'Q' or close the game console, then:
 
-After every 17 ms, a new frame needs to be displayed: this is accomplished by continuously executing the game program instructions (as pointed
-to by the program counter) until the total number of CPU cycles for that frame reaches about ~ `1/2 CLOCK_RATE/FPS` cycles. Then the 
-mid-screen interrupt would trigger. Specific ISR for mid-screen interrupt would execute, then returns to the normal execution. The game 
-program instructions will continued to be executed until the total number of CPU cycles for that frame reaches reaches ~ `CLOCK_RATE/FPS` cycles, 
-at which the end-of-screen interrupt would trigger. After both interrupts are serviced, the code will exit the executing instructions loop,
-update the screen buffer and lastly will update the console screen itself.
+After every 17 ms, the user keyboard input is polled and a new frame needs to be displayed: this is accomplished by continuously executing the game program instructions (as pointed to by the program counter) until the total number of CPU cycles for that frame reaches about ~ HALF_CYCLES_PER_FRAME. Then the mid-screen interrupt would trigger. Specific ISR for mid-screen interrupt would execute, then returns to the normal execution. The game program instructions will continued to be executed until the total number of CPU cycles for that frame reaches reaches ~ CYCLES_PER_FRAME, at which the end-of-screen interrupt would trigger. After both interrupts are serviced, the code will exit the executing instructions loop, update the screen buffer and lastly will update the console screen itself.
 
 This cycle of execution -> mid-screen interrupt -> execution -> end-of-screen interrupt -> update buffer -> update screen will be implemented 
-for every new frame to be displayed. 
+for every new frame to be displayed, for every 17 ms. 
 
 # How the Screen is Displayed
+//TODO
