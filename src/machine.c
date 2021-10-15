@@ -162,3 +162,15 @@ void machine_update_screen(machine_t* machine){
         }
     }
 }
+
+void generate_interrupt(machine_t* machine, uint8_t int_num){
+    //Only generate interrupt if interrupt-enable is set
+    if(machine->cpu->interrupt_enable==1){
+        //Disable interrupt enable
+        machine->cpu->interrupt_enable=0;
+        //Generate the interrupt with the appropriate interrupt number
+        RST(machine->cpu, int_num);
+        //11 cycles taken for interrupts
+        machine->cpu->instruction_cycles+=11;
+    }
+}
